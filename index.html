@@ -564,7 +564,7 @@ tbody tr:hover td{ background:rgba(255,255,255,.025);}
 /* ═══════════════════════════════════════════
    SOZLAMA
 ═══════════════════════════════════════════ */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFkndHZP31rDe2m3SkZe40bUAN_dbPvOLpnZ9lY4dVYzgSHIa1IPN5ADindybuY-0i/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxrHoYD4NyDJOUbyrCDBk6Nsc5sW6Uo0U9KHUqvfLYtOyzEkf3UdkoGAsdnNxCoTodz/exec';
 const REFRESH_SEC = 30;
 
 /* ═══════════════════════════════════════════
@@ -995,6 +995,34 @@ document.querySelectorAll('#seg button').forEach(b=>{
     render();
   };
 });
+
+/* ═══════════════════════════════════════════
+   TASHRIF LOGI — GOOGLE SHEETS
+═══════════════════════════════════════════ */
+function logVisit() {
+  try {
+    const ua = navigator.userAgent;
+    const device  = /Mobi|Android/i.test(ua) ? 'Telefon' : 'Kompyuter';
+    const browser = /Chrome/i.test(ua) ? 'Chrome' :
+                    /Safari/i.test(ua) ? 'Safari' :
+                    /Firefox/i.test(ua) ? 'Firefox' :
+                    /Edge/i.test(ua) ? 'Edge' : 'Boshqa';
+    const screen_ = window.screen.width + 'x' + window.screen.height;
+    const os      = /iPhone|iPad/i.test(ua) ? 'iOS' :
+                    /Android/i.test(ua) ? 'Android' :
+                    /Windows/i.test(ua) ? 'Windows' :
+                    /Mac/i.test(ua) ? 'Mac' : 'Boshqa';
+
+    const params = new URLSearchParams({
+      action: 'log',
+      device, browser,
+      screen: screen_,
+      os
+    });
+    fetch(APPS_SCRIPT_URL + '?' + params.toString()).catch(()=>{});
+  } catch(e) {}
+}
+logVisit();
 
 /* ═══════════════════════════════════════════
    PWA — SERVICE WORKER
