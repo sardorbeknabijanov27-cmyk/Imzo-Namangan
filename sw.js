@@ -1,5 +1,12 @@
-const CACHE = 'imzo-v1';
-const ASSETS = ['dashboard.html', 'manifest.json', 'logo.png'];
+const CACHE = 'imzo-v2';
+const ASSETS = [
+  'index.html',
+  'manifest.json',
+  'logo.png',
+  'icon-192.png',
+  'icon-512.png',
+  'apple-touch-icon.png'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -18,12 +25,12 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Google Apps Script — har doim network
-  if (e.request.url.includes('script.google.com')) {
-    e.respondWith(fetch(e.request));
+  if (e.request.url.includes('script.google.com') ||
+      e.request.url.includes('fonts.googleapis.com') ||
+      e.request.url.includes('cdnjs.cloudflare.com')) {
+    e.respondWith(fetch(e.request).catch(() => new Response('')));
     return;
   }
-  // Boshqalar — cache first
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
