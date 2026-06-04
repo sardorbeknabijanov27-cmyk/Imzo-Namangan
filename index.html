@@ -1019,7 +1019,7 @@ function logVisit() {
       screen: screen_,
       os
     });
-    fetch(APPS_SCRIPT_URL + '?' + params.toString()).catch(()=>{});
+    fetch(APPS_SCRIPT_URL + '?' + params.toString(), {mode: 'no-cors'}).catch(()=>{});
   } catch(e) {}
 }
 logVisit();
