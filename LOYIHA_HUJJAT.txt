@@ -1,0 +1,290 @@
+╔══════════════════════════════════════════════════════════════════╗
+║         IMZO NAMANGAN — XARAJAT DASHBOARD LOYIHASI              ║
+║                   TO'LIQ HUJJAT                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Yaratilgan: 2026-yil iyun
+Maqsad: Google Sheets'dagi kunlik xarajat ma'lumotlarini
+        real-vaqt rejimida ko'rsatuvchi professional dashboard
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. AKKAUNTLAR VA HIZMATLAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+► GITHUB AKKAUNT (Dashboard uchun alohida)
+  - Username : sardorbeknabijanov27-cmyk
+  - Repo     : https://github.com/sardorbeknabijanov27-cmyk/Imzo-Namangan
+  - Ko'rinish: Private (yopiq)
+  - Token    : Yangi token olish uchun:
+               github.com/settings/tokens/new → "repo" belgilang
+
+► NETLIFY (Hosting)
+  - URL      : https://aesthetic-sprite-754932.netlify.app
+  - Kirish   : Gmail orqali (app.netlify.com)
+  - GitHub   : sardorbeknabijanov27-cmyk akkauntiga ulangan
+  - Narx     : Bepul (100GB/oy)
+
+► GOOGLE SHEETS (Ma'lumotlar)
+  - Sheet ID : 1Kiw5YJZWmlkHMbjvlgcut9XsKP3NuiKKUuC_toxtEaE
+  - URL      : https://docs.google.com/spreadsheets/d/1Kiw5YJZWmlkHMbjvlgcut9XsKP3NuiKKUuC_toxtEaE
+  - Varaqlar : Касса (asosiy), Tashrif (log), Курс, Ходимлар карздорлик
+
+► APPS SCRIPT (Ko'prik — Sheets ↔ Dashboard)
+  - URL      : https://script.google.com/macros/s/AKfycbz3ImSLqTm7vaG8C9ax90-GlED-xgf0hM0gCsyut967wyH_vlbTA6RHwgRdKsViAxNn/exec
+  - Kirish   : Google Sheets → Extensions → Apps Script
+  - Deploy   : "Anyone" — hamma kira oladi (login kerak emas)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. FAYLLAR TUZILMASI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Кунлик хисобот/
+├── index.html          ← Asosiy dashboard (Netlify bu faylni ochadi)
+├── dashboard.html      ← index.html ning nusxasi (lokal uchun)
+├── manifest.json       ← PWA sozlamalari (ilova sifatida qo'shish)
+├── sw.js               ← Service Worker (oflayn ishlash)
+├── logo.png            ← Shaffof Imzo Namangan logosi
+├── icon-192.png        ← Android uchun icon (192x192)
+├── icon-512.png        ← Android uchun icon (512x512)
+├── apple-touch-icon.png      ← iPhone icon (180x180)
+├── apple-touch-icon-152.png  ← iPad icon (152x152)
+├── apple-touch-icon-167.png  ← iPad Pro icon (167x167)
+└── LOYIHA_HUJJAT.txt   ← Bu fayl
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. QANDAY ISHLAYDI (UMUMIY SXEMA)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Google Sheets (ma'lumot)
+        ↕
+  Apps Script (JavaScript API)
+        ↕
+  Netlify (index.html — dashboard)
+        ↕
+  Foydalanuvchi (telefon/kompyuter)
+
+  1. Sheets'ga yangi xarajat yoziladi
+  2. Dashboard har 30 soniyada Apps Script'ga so'rov yuboradi
+  3. Apps Script Sheets'dan ma'lumotni o'qib JSON qaytaradi
+  4. Dashboard avtomatik yangilanadi
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. APPS SCRIPT TO'LIQ KODI (nima uchun yozilgan)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// doGet — barcha so'rovlar shu funksiyadan kiradi
+// action=log bo'lsa tashrif yozadi, aks holda ma'lumot qaytaradi
+function doGet(e) {
+  const action = e && e.parameter && e.parameter.action;
+  if (action === 'log') return logVisit(e);
+  return getData();
+}
+
+// logVisit — kimdir dashboard'ni ochganda "Tashrif" varag'iga yozadi
+// Yozadi: vaqt, qurilma turi, model, OS, brauzer, ekran, til, vaqt zonasi
+function logVisit(e) {
+  const ss = SpreadsheetApp.openById('1Kiw5YJZWmlkHMbjvlgcut9XsKP3NuiKKUuC_toxtEaE');
+  let logSheet = ss.getSheetByName('Tashrif');
+  if (!logSheet) {
+    logSheet = ss.insertSheet('Tashrif');
+    logSheet.appendRow(['Vaqt','Qurilma','Model','OS','Brauzer','Ekran','Til','Vaqt zonasi']);
+    logSheet.getRange(1,1,1,8).setFontWeight('bold').setBackground('#1a1a2e').setFontColor('#ffffff');
+    logSheet.setFrozenRows(1);
+    logSheet.setColumnWidth(1,160); logSheet.setColumnWidth(2,110);
+    logSheet.setColumnWidth(3,170); logSheet.setColumnWidth(4,120);
+    logSheet.setColumnWidth(5,110); logSheet.setColumnWidth(6,140);
+  }
+  const p = e.parameter || {};
+  const timeStr = Utilities.formatDate(new Date(), 'Asia/Tashkent', 'dd.MM.yyyy HH:mm:ss');
+  logSheet.appendRow([timeStr, p.device||'—', p.model||'—', p.os||'—',
+                      p.browser||'—', p.screen||'—', p.lang||'—', p.tz||'—']);
+  return ContentService.createTextOutput(JSON.stringify({ok:true}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// getData — "Касса" varag'idan xarajatlarni o'qib JSON qaytaradi
+// Sheets tuzilmasi:
+//   5-qator: sarlavhalar
+//   6-qatordan: ma'lumotlar
+//   Ustun 5 (F): сана (sana)
+//   Ustun 6 (G): изох (tavsif)
+//   Ustun 7 (H): код (kategoriya raqami)
+//   Ustun 8 (I): сумма
+//   Ustun 12 (M): kategoriya raqami (jadval)
+//   Ustun 13 (N): kategoriya nomi (jadval)
+function getData() {
+  const SHEET_ID = '1Kiw5YJZWmlkHMbjvlgcut9XsKP3NuiKKUuC_toxtEaE';
+  const GID = 897386677;
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheets().find(s => s.getSheetId() === GID);
+    const data = sheet.getDataRange().getValues();
+    const rows = data.slice(5);
+    // Kategoriya kodi → nomi lug'ati
+    const catMap = {};
+    rows.forEach(row => {
+      const num = row[12], name = String(row[13]||'').trim();
+      if (num && name) catMap[String(num).trim()] = name;
+    });
+    const operations = [], catSet = new Set();
+    rows.forEach(row => {
+      const amount = parseFloat(String(row[8]||'').replace(/\s/g,'').replace(',','.')) || 0;
+      if (!amount) return;
+      const day = formatDay(row[5]); if (!day) return;
+      const cat = catMap[String(row[7]||'').trim()] || 'Boshqa';
+      const desc = String(row[6]||'').trim();
+      operations.push({day, cat, desc, amount}); catSet.add(cat);
+    });
+    operations.sort((a,b) => a.day.localeCompare(b.day));
+    return out({operations, categories:[...catSet].sort()});
+  } catch(err) { return out({error:err.toString(), operations:[], categories:[]}); }
+}
+
+// formatDay — turli formatdagi sanani YYYY-MM-DD ga o'tkazadi
+function formatDay(val) {
+  if (!val) return null;
+  if (val instanceof Date) {
+    return val.getFullYear()+'-'+String(val.getMonth()+1).padStart(2,'0')+
+           '-'+String(val.getDate()).padStart(2,'0');
+  }
+  const s = String(val).trim();
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  return null;
+}
+
+function out(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. MANIFEST.JSON (nima uchun)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Telefon va kompyuterda "Ilova sifatida qo'shish" uchun kerak
+// iOS: Safari → Share → Add to Home Screen
+// Android: Chrome → 3 nuqta → Add to Home Screen
+// Kompyuter: Chrome/Edge manzil satrida + belgisi
+
+{
+  "name": "Imzo Namangan — Xarajat",
+  "short_name": "Imzo",
+  "start_url": "/index.html",
+  "display": "standalone",        // Brauzer panelsiz ochiladi
+  "background_color": "#080c10",  // Yuklash ekrani rangi
+  "theme_color": "#080c10",       // Telefon status bar rangi
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192" },  // Android
+    { "src": "icon-512.png", "sizes": "512x512" }   // Android katta
+  ]
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. SW.JS — SERVICE WORKER (nima uchun)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Internet bo'lmasa ham sahifa ochiladi (keshdan)
+// Google Apps Script'ga so'rovlar doim internet orqali ketadi
+// Faqat HTML/CSS/rasmlar keshda saqlanadi
+
+const CACHE = 'imzo-v2';
+const ASSETS = ['index.html', 'manifest.json', 'logo.png',
+                'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+
+install  → fayllarni keshga saqlaydi
+activate → eski keshni o'chiradi
+fetch    → keshdan ochadi (Google Script'ga esa internetdan)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. INDEX.HTML — ASOSIY SOZLAMALAR (faqat muhim qismlar)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Eng muhim 2 ta sozlama:
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3...exec';
+// ^ Apps Script URL — yangi deploy qilsangiz bu o'zgaradi, shu yerda yangilang
+
+const REFRESH_SEC = 30;
+// ^ Necha soniyada yangilanadi (30 = 30 soniya)
+
+// Asosiy funksiyalar:
+// fetchData()   — Apps Script'dan ma'lumot oladi
+// logVisit()    — tashrif ma'lumotini yozadi
+// render()      — dashboardni yangilaydi
+// showDetail()  — kategoriya bosilganda batafsil ko'rsatadi
+// renderLedger()— qidiruv bilan jadval ko'rsatadi
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. GITHUB'DAN PUSH QILISH (boshqa kompyuterda)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Git o'rnating: git-scm.com
+
+2. Reponi yuklang:
+   git clone https://github.com/sardorbeknabijanov27-cmyk/Imzo-Namangan.git
+   cd Imzo-Namangan
+
+3. Token oling (github.com/settings/tokens/new → repo ✅):
+   git remote set-url origin https://sardorbeknabijanov27-cmyk:TOKEN@github.com/sardorbeknabijanov27-cmyk/Imzo-Namangan.git
+
+4. O'zgartirish qilganda:
+   git add .
+   git commit -m "nima o'zgardi"
+   git push
+   → Netlify 1-2 daqiqada avtomatik yangilanadi
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. APPS SCRIPT QAYTA DEPLOY QILISH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Google Sheets oching
+2. Extensions → Apps Script
+3. Kodni yozing (yuqoridagi 4-bo'limdagi to'liq kod)
+4. Deploy → New deployment
+   - Type: Web app
+   - Execute as: Me
+   - Who has access: Anyone
+5. Chiqqan URL'ni index.html'da APPS_SCRIPT_URL ga yozing
+6. git add . && git commit -m "yangi URL" && git push
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. MUAMMO VA YECHIMLAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MUAMMO: Dashboard "Xatolik" ko'rsatyapti
+YECHIM: Apps Script'ni qayta deploy qiling (9-bo'lim)
+
+MUAMMO: Ma'lumot yangilanmayapti
+YECHIM: Google Sheets'dagi ustun joylari o'zgarmagan tekshiring
+        (F=sana, G=tavsif, H=kod, I=summa, M=cat_raqam, N=cat_nom)
+
+MUAMMO: Tashrif varag'i yozilmayapti
+YECHIM: Apps Script'ni qayta deploy qiling
+
+MUAMMO: Netlify sayt ko'rinmayapti
+YECHIM: app.netlify.com → sayt → Deploys → Trigger deploy
+
+MUAMMO: GitHub push bo'lmayapti (403)
+YECHIM: Yangi token oling va remote URL'ni yangilang (8-bo'lim)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. XULOSA — BARCHA MUHIM LINKLAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dashboard (asosiy link):
+  https://aesthetic-sprite-754932.netlify.app
+
+Google Sheets:
+  https://docs.google.com/spreadsheets/d/1Kiw5YJZWmlkHMbjvlgcut9XsKP3NuiKKUuC_toxtEaE
+
+Apps Script:
+  https://script.google.com/macros/s/AKfycbz3ImSLqTm7vaG8C9ax90-GlED-xgf0hM0gCsyut967wyH_vlbTA6RHwgRdKsViAxNn/exec
+
+GitHub repo:
+  https://github.com/sardorbeknabijanov27-cmyk/Imzo-Namangan
+
+Netlify boshqaruv:
+  https://app.netlify.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
